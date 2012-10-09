@@ -36,6 +36,7 @@
 suite() -> [{timetrap, {minutes, 20}}].
 
 all() ->
+    timer:start(),
     [interupted_sync_transactions].
 %    systest_suite:export_all(?MODULE).
 
@@ -63,8 +64,6 @@ multiple_running_sync_transactions(_Config) ->
     Size = mnesia:table_info(employee, size),
     ct:pal("mnesia table contains ~p records~n", [Size]).
 
-time_to_ms({UoM, Val}=TS) ->
-    case systest_env:is_exported(timer, UoM, 1) of
-        true  -> erlang:apply(timer, UoM, [Val]);
-        false -> throw({invalid_timespec, TS})
-    end.
+time_to_ms({UoM, Val}) ->
+    erlang:apply(timer, UoM, [Val]).
+
