@@ -36,7 +36,7 @@ do_start(Nodes) ->
 
 start(Node, _ClusterRef, _Siblins) ->
     Id = systest:process_data(id, Node),
-    Result = rpc:call(Id, application, start, [?MODULE, transient]),
+    Result = rpc:call(Id, application, start, [?MODULE, permanent]),
     error_logger:info_msg("starting ~p on ~p: ~p~n", [?MODULE, Id, Result]),
     Result.
 
