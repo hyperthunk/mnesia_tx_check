@@ -23,7 +23,7 @@
                  {node5, [sasl_node]},
                  {node6, [sasl_node]}]},
     {on_start, [{local, mnesia_tx_check, on_start, []}]}
-]}.
+]}. 
 
 {sync_tx_races_SUITE, [{all, cluster}]}.
 
