@@ -19,6 +19,8 @@ in *verbose* mode by adding `-v 4` to that last command.
 A six node cluster is configured in `./resources/nodes.resource`, where each
 node is started using the [slave](http://www.erlang.org/doc/man/slave.html)
 module. The cluster `on_start` hooks bootstraps mnesia for all the nodes,
-which the slave/node `on_join` hook triggers the mnesia_tx_check application
-startup.
+whilst the slave/node `on_join` hook triggers the mnesia_tx_check application
+startup, which starts exercising the database somewhat vigorously. The test
+suite (in the ./test directory) restarts nodes with some degree of randomness,
+in the coice of node and timing of the restarts.
 
