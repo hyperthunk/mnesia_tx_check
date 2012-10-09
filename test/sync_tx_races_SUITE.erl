@@ -33,7 +33,7 @@
 
 -compile(export_all).
 
-suite() -> [{timetrap, {minutes, 20}}].
+suite() -> [{timetrap, {minutes, 45}}].
 
 all() ->
     timer:start(),
@@ -41,20 +41,11 @@ all() ->
 %    systest_suite:export_all(?MODULE).
 
 interupted_sync_transactions(Config) ->
-    timer:sleep(10 * 1000),
+    prep_send_stop(),
     Sut = systest:get_system_under_test(Config),
     Procs = systest:list_processes(Sut),
-    Indexes =
-        [X || {_, X} <- lists:sort(
-                          [{random:uniform(), N} ||
-                              N <- lists:seq(1, length(Procs))])],
-    [begin
-         timer:sleep(3000),
-         {_Id, Ref} = lists:nth(I, Procs),
-         systest:restart_process(Sut, Ref)
-     end || I <- Indexes],
 
-    timer:sleep(time_to_ms({minutes, 15})),
+    perform_random_restarts(Sut, Procs),
 
     Size = mnesia:table_info(employee, size),
     ct:pal("mnesia table contains ~p records~n", [Size]).
@@ -63,6 +54,38 @@ multiple_running_sync_transactions(_Config) ->
     timer:sleep(time_to_ms({minutes, 5})),
     Size = mnesia:table_info(employee, size),
     ct:pal("mnesia table contains ~p records~n", [Size]).
+
+prep_send_stop() ->
+    {timetrap, Timeout} = lists:keyfind(timetrap, 1, suite()),
+    StopGap = time_to_ms({minutes, 2}),
+    After = time_to_ms(Timeout) - StopGap,
+    erlang:send_after(After, self(), stop).
+
+perform_random_restarts(Sut, Procs) ->
+    try
+        Indexes =
+            [X || {_, X} <- lists:sort(
+                              [{random:uniform(), N} ||
+                                  N <- lists:seq(1, length(Procs))])],
+        [begin
+             maybe_stop({seconds, erlang:max(45, random:uniform(100))}),
+             {_Id, Ref} = lists:nth(I, Procs),
+             systest:restart_process(Sut, Ref)
+         end || I <- Indexes],
+
+        maybe_stop({seconds, erlang:max(45, random:uniform(200))}),
+        perform_random_restarts(Sut, Procs)
+    catch
+        throw:stop -> ok
+    end.
+
+maybe_stop(When) ->
+    Ms = time_to_ms(When),
+    systest:log("maybe stopping in ~p ms~n", [Ms]),
+    receive stop -> throw(stop)
+    after Ms -> systest:log("no stop signal received - go!~n", []),
+                ok
+    end.
 
 time_to_ms({UoM, Val}) ->
     erlang:apply(timer, UoM, [Val]).
